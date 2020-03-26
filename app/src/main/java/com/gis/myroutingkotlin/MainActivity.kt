@@ -75,7 +75,20 @@ class MainActivity : AppCompatActivity() {
         val map = ArcGISMap(Basemap.createStreetsVector())
         mapView.map = map
 
+
+
 //        setupLocationDisplay()
+
+//        getLocationFuse()
+//        navigate()
+//        recenterButton.isEnabled = false
+//        recenterButton.setOnClickListener(View.OnClickListener { v: View? ->
+//            mapView.locationDisplay.autoPanMode = LocationDisplay.AutoPanMode.NAVIGATION
+//            recenterButton.isEnabled = false
+//        })
+    }
+
+    private fun getLocationFuse() {
         val fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         Dexter.withActivity(this)
             .withPermissions(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION)
@@ -102,81 +115,8 @@ class MainActivity : AppCompatActivity() {
 
             })
             .check()
-
-
-
-
-
-        // create a graphics overlay to hold our route graphics
-        val graphicsOverlay = GraphicsOverlay()
-        mapView.graphicsOverlays.add(graphicsOverlay)
-
-        // initialize text-to-speech to replay navigation voice guidance
-        mTextToSpeech = TextToSpeech(this, OnInitListener { status: Int ->
-            if (status != TextToSpeech.ERROR) {
-                mTextToSpeech!!.language = Resources.getSystem().configuration.locale
-                mIsTextToSpeechInitialized = true
-            }
-        })
-
-        // clear any graphics from the current graphics overlay
-        mapView.graphicsOverlays[0].graphics.clear()
-
-        // generate a route with directions and stops for navigation
-        val routeTask = RouteTask(this, getString(R.string.routing_service_url2))
-        val routeParametersFuture = routeTask.createDefaultParametersAsync()
-
-        routeParametersFuture.addDoneListener {
-            try { // define the route parameters
-                val routeParameters = routeParametersFuture.get()
-                routeParameters.setStops(getStops())
-                routeParameters.isReturnDirections = true
-                routeParameters.isReturnStops = true
-                routeParameters.isReturnRoutes = true
-                val routeResultFuture = routeTask.solveRouteAsync(routeParameters)
-                routeParametersFuture.addDoneListener {
-                    try { // get the route geometry from the route result
-                        val routeResult = routeResultFuture.get()
-                        val routeGeometry = routeResult.routes[0].routeGeometry
-                        // create a graphic for the route geometry
-                        val routeGraphic = Graphic(routeGeometry,
-                                SimpleLineSymbol(SimpleLineSymbol.Style.SOLID, Color.BLUE, 5f))
-                        // add it to the graphics overlay
-                        mapView.graphicsOverlays[0].graphics.add(routeGraphic)
-                        // set the map view view point to show the whole route
-                        mapView.setViewpointAsync(Viewpoint(routeGeometry.extent))
-                        // create a button to start navigation with the given route
-                        val navigateRouteButton = findViewById<Button>(R.id.navigateRouteButton)
-                        navigateRouteButton.setOnClickListener { v: View? -> startNavigation(routeTask, routeParameters, routeResult) }
-                        // start navigating
-                        startNavigation(routeTask, routeParameters, routeResult)
-                    } catch (e: ExecutionException) {
-                        val error = "Error creating default route parameters: " + e.message
-                        Toast.makeText(this, error, Toast.LENGTH_LONG).show()
-                        Log.e("chikk", error)
-                    } catch (e: InterruptedException) {
-                        val error = "Error creating default route parameters: " + e.message
-                        Toast.makeText(this, error, Toast.LENGTH_LONG).show()
-                        Log.e("chikk", error)
-                    }
-                }
-            } catch (e: InterruptedException) {
-                val error = "Error getting the route result " + e.message
-                Toast.makeText(this, error, Toast.LENGTH_LONG).show()
-                Log.e("chikk", error)
-            } catch (e: ExecutionException) {
-                val error = "Error getting the route result " + e.message
-                Toast.makeText(this, error, Toast.LENGTH_LONG).show()
-                Log.e("chikk", error)
-            }
-        }
-
-        recenterButton.isEnabled = false
-        recenterButton.setOnClickListener(View.OnClickListener { v: View? ->
-            mapView.locationDisplay.autoPanMode = LocationDisplay.AutoPanMode.NAVIGATION
-            recenterButton.isEnabled = false
-        })
     }
+
 
     fun setupLocationDisplay() {
         mapView.locationDisplay.isShowLocation = true
@@ -214,6 +154,72 @@ class MainActivity : AppCompatActivity() {
 
         } else {
             Toast.makeText(this, resources.getString(R.string.location_permission_denied), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun navigate() {
+        // create a graphics overlay to hold our route graphics
+        val graphicsOverlay = GraphicsOverlay()
+        mapView.graphicsOverlays.add(graphicsOverlay)
+
+        // initialize text-to-speech to replay navigation voice guidance
+        mTextToSpeech = TextToSpeech(this, OnInitListener { status: Int ->
+            if (status != TextToSpeech.ERROR) {
+                mTextToSpeech!!.language = Resources.getSystem().configuration.locale
+                mIsTextToSpeechInitialized = true
+            }
+        })
+
+        // clear any graphics from the current graphics overlay
+        mapView.graphicsOverlays[0].graphics.clear()
+
+        // generate a route with directions and stops for navigation
+        val routeTask = RouteTask(this, getString(R.string.routing_service_url2))
+        val routeParametersFuture = routeTask.createDefaultParametersAsync()
+
+        routeParametersFuture.addDoneListener {
+            try { // define the route parameters
+                val routeParameters = routeParametersFuture.get()
+                routeParameters.setStops(getStops())
+                routeParameters.isReturnDirections = true
+                routeParameters.isReturnStops = true
+                routeParameters.isReturnRoutes = true
+                val routeResultFuture = routeTask.solveRouteAsync(routeParameters)
+                routeParametersFuture.addDoneListener {
+                    try { // get the route geometry from the route result
+                        val routeResult = routeResultFuture.get()
+                        val routeGeometry = routeResult.routes[0].routeGeometry
+                        // create a graphic for the route geometry
+                        val routeGraphic = Graphic(routeGeometry,
+                            SimpleLineSymbol(SimpleLineSymbol.Style.SOLID, Color.BLUE, 5f))
+                        // add it to the graphics overlay
+                        mapView.graphicsOverlays[0].graphics.add(routeGraphic)
+                        // set the map view view point to show the whole route
+                        mapView.setViewpointAsync(Viewpoint(routeGeometry.extent))
+                        // create a button to start navigation with the given route
+                        val navigateRouteButton = findViewById<Button>(R.id.navigateRouteButton)
+                        navigateRouteButton.setOnClickListener { v: View? -> startNavigation(routeTask, routeParameters, routeResult) }
+                        // start navigating
+                        startNavigation(routeTask, routeParameters, routeResult)
+                    } catch (e: ExecutionException) {
+                        val error = "Error creating default route parameters: " + e.message
+                        Toast.makeText(this, error, Toast.LENGTH_LONG).show()
+                        Log.e("chikk", error)
+                    } catch (e: InterruptedException) {
+                        val error = "Error creating default route parameters: " + e.message
+                        Toast.makeText(this, error, Toast.LENGTH_LONG).show()
+                        Log.e("chikk", error)
+                    }
+                }
+            } catch (e: InterruptedException) {
+                val error = "Error getting the route result " + e.message
+                Toast.makeText(this, error, Toast.LENGTH_LONG).show()
+                Log.e("chikk", error)
+            } catch (e: ExecutionException) {
+                val error = "Error getting the route result " + e.message
+                Toast.makeText(this, error, Toast.LENGTH_LONG).show()
+                Log.e("chikk", error)
+            }
         }
     }
 
