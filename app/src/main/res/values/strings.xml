@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">LocationProviderClient</string>
+    <string name="app_name">LocationWithLiveData</string>
     <string name="routing_service_url">http://sampleserver6.arcgisonline.com/arcgis/rest/services/NetworkAnalysis/SanDiego/NAServer/Route</string>
     <string name="routing_service_url2">https://map.pea.co.th/arcgis/rest/services/PEA_TRANS/NAServer/Route</string>
     <string name="distance_remaining">Distance remaining: %s %s</string>
@@ -10,16 +10,7 @@
 
     <string name="location_permission_denied">User denied permission for device location.</string>
 
-
-    <string name="latitude_label">Latitude</string>
-    <string name="longitude_label">Longitude</string>
-
-    <string name="no_location_detected">
-        No location detected. Make sure location is enabled on the device.
-    </string>
-
-    <string name="permission_rationale">Location permission is needed for core functionality</string>
-    <string name="permission_denied_explanation">Permission was denied, but is needed for core
-        functionality.</string>
-    <string name="settings">Settings</string>
+    <string name="latLong">Longitude: %.8f, Latitude: %.8f</string>
+    <string name="enable_gps">Please enable your gps</string>
+    <string name="permission_request">App requires location permission</string>
 </resources>
