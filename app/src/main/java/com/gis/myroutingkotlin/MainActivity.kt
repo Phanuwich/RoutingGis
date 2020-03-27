@@ -2,6 +2,8 @@ package com.gis.myroutingkotlin
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.graphics.Color
@@ -53,6 +55,9 @@ import kotlinx.android.synthetic.main.layout_navigation_controls.*
 import java.util.*
 import java.util.concurrent.ExecutionException
 
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProviders
+
 class MainActivity : AppCompatActivity() {
 
     private var mTextToSpeech: TextToSpeech? = null
@@ -65,30 +70,47 @@ class MainActivity : AppCompatActivity() {
     private var mRouteTracker: RouteTracker? = null
 
     private lateinit var mLocationDisplay: LocationDisplay
-
     lateinit var location: Location
+
+    private lateinit var locationViewModel: LocationViewModel
+    private var isGPSEnabled = false
+
+
+    lateinit var startPoint: Point
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
 
         // create a map and set it to the map view
         val map = ArcGISMap(Basemap.createStreetsVector())
         mapView.map = map
 
-
-
+        getLocation()
+        invokeLocationAction()
+        navigate()
 //        setupLocationDisplay()
 
-//        getLocationFuse()
-//        navigate()
-//        recenterButton.isEnabled = false
-//        recenterButton.setOnClickListener(View.OnClickListener { v: View? ->
-//            mapView.locationDisplay.autoPanMode = LocationDisplay.AutoPanMode.NAVIGATION
-//            recenterButton.isEnabled = false
-//        })
+//        getLocationFuse2()
+
+        recenterButton.isEnabled = false
+        recenterButton.setOnClickListener(View.OnClickListener { v: View? ->
+            mapView.locationDisplay.autoPanMode = LocationDisplay.AutoPanMode.NAVIGATION
+            recenterButton.isEnabled = false
+        })
     }
 
-    private fun getLocationFuse() {
+    private fun getLocation() {
+        locationViewModel = ViewModelProviders.of(this).get(LocationViewModel::class.java)
+        GpsUtils(this).turnGPSOn(object : GpsUtils.OnGpsListener {
+
+            override fun gpsStatus(isGPSEnable: Boolean) {
+                this@MainActivity.isGPSEnabled = isGPSEnable
+            }
+        })
+    }
+
+    private fun getLocationFuse2() {
         val fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         Dexter.withActivity(this)
             .withPermissions(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION)
@@ -100,8 +122,10 @@ class MainActivity : AppCompatActivity() {
                             override fun onLocationResult(loc: LocationResult) {
                                 location = loc.lastLocation
                                 location?.let {
-                                    val point = Point(it.latitude, it.longitude, SpatialReferences.getWgs84())
-                                    d("chikk","pointttt = $point")
+                                    startPoint = Point(it.latitude, it.longitude, SpatialReferences.getWgs84())
+                                    d("chikk","pointttt = $startPoint")
+//                                    navigate()
+
                                 }
                             }
                         }, null)
@@ -118,44 +142,44 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    fun setupLocationDisplay() {
-        mapView.locationDisplay.isShowLocation = true
-        mLocationDisplay = mapView.locationDisplay
-        mLocationDisplay.addDataSourceStatusChangedListener {
-            if (it.isStarted || it.error == null){
+//    fun setupLocationDisplay() {
+//        mapView.locationDisplay.isShowLocation = true
+//        mLocationDisplay = mapView.locationDisplay
+//        mLocationDisplay.addDataSourceStatusChangedListener {
+//            if (it.isStarted || it.error == null){
+//
+//                d("chikk","currentttttttt2222 = ${mLocationDisplay.mapLocation}")
+//                return@addDataSourceStatusChangedListener
+//            }
+//            var requestPermissionsCode = 99
+//            var requestPermissions = arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION)
+//
+//            if ((ContextCompat.checkSelfPermission(this, requestPermissions[0]) == PackageManager.PERMISSION_GRANTED
+//                        && ContextCompat.checkSelfPermission(this, requestPermissions[1]) == PackageManager.PERMISSION_GRANTED)){
+//                ActivityCompat.requestPermissions(this, requestPermissions, requestPermissionsCode)
+//            }else{
+//                val message = String.format("Error in DataSourceStatusChangedListener: %s", it.source.locationDataSource.error.message)
+//                Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+//            }
+//        }
+//
+//        mLocationDisplay.autoPanMode = LocationDisplay.AutoPanMode.COMPASS_NAVIGATION
+//        mLocationDisplay.startAsync()
+//
+//    }
 
-                d("chikk","currentttttttt2222 = ${mLocationDisplay.mapLocation}")
-                return@addDataSourceStatusChangedListener
-            }
-            var requestPermissionsCode = 99
-            var requestPermissions = arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION)
-
-            if ((ContextCompat.checkSelfPermission(this, requestPermissions[0]) == PackageManager.PERMISSION_GRANTED
-                        && ContextCompat.checkSelfPermission(this, requestPermissions[1]) == PackageManager.PERMISSION_GRANTED)){
-                ActivityCompat.requestPermissions(this, requestPermissions, requestPermissionsCode)
-            }else{
-                val message = String.format("Error in DataSourceStatusChangedListener: %s", it.source.locationDataSource.error.message)
-                Toast.makeText(this, message, Toast.LENGTH_LONG).show();
-            }
-        }
-
-        mLocationDisplay.autoPanMode = LocationDisplay.AutoPanMode.COMPASS_NAVIGATION
-        mLocationDisplay.startAsync()
-
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            mLocationDisplay.startAsync()
-
-        } else {
-            Toast.makeText(this, resources.getString(R.string.location_permission_denied), Toast.LENGTH_SHORT).show()
-        }
-    }
+//    override fun onRequestPermissionsResult(
+//        requestCode: Int,
+//        permissions: Array<out String>,
+//        grantResults: IntArray
+//    ) {
+//        if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+//            mLocationDisplay.startAsync()
+//
+//        } else {
+//            Toast.makeText(this, resources.getString(R.string.location_permission_denied), Toast.LENGTH_SHORT).show()
+//        }
+//    }
 
     private fun navigate() {
         // create a graphics overlay to hold our route graphics
@@ -202,21 +226,21 @@ class MainActivity : AppCompatActivity() {
                         // start navigating
                         startNavigation(routeTask, routeParameters, routeResult)
                     } catch (e: ExecutionException) {
-                        val error = "Error creating default route parameters: " + e.message
+                        val error = "Error creating default route parameters1: " + e.message
                         Toast.makeText(this, error, Toast.LENGTH_LONG).show()
                         Log.e("chikk", error)
                     } catch (e: InterruptedException) {
-                        val error = "Error creating default route parameters: " + e.message
+                        val error = "Error creating default route parameters2: " + e.message
                         Toast.makeText(this, error, Toast.LENGTH_LONG).show()
                         Log.e("chikk", error)
                     }
                 }
             } catch (e: InterruptedException) {
-                val error = "Error getting the route result " + e.message
+                val error = "Error getting the route result1 " + e.message
                 Toast.makeText(this, error, Toast.LENGTH_LONG).show()
                 Log.e("chikk", error)
             } catch (e: ExecutionException) {
-                val error = "Error getting the route result " + e.message
+                val error = "Error getting the route result2 " + e.message
                 Toast.makeText(this, error, Toast.LENGTH_LONG).show()
                 Log.e("chikk", error)
             }
@@ -224,19 +248,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getStops(): List<Stop>? {
-        d("chikk","pointttt2 = ${location.latitude}")
-        val stops: MutableList<Stop> = ArrayList(3)
-
-        val point = Point(location.latitude, location.longitude, SpatialReferences.getWgs84())
-        val conventionCenter = Stop(point)
-        stops.add(conventionCenter)
+        val stops: ArrayList<Stop> = ArrayList(3)
+        val conventionCenter = Stop(startPoint)
+        d("chikk","starttt = $startPoint")
+        stops?.add(conventionCenter)
         // USS San Diego Memorial
         val memorial = Stop(Point(100.412123, 13.876779, SpatialReferences.getWgs84()))
-        stops.add(memorial)
-        // RH Fleet Aerospace Museum
-        val aerospaceMuseum = Stop(Point(100.443162, 13.877435, SpatialReferences.getWgs84()))
-        stops.add(aerospaceMuseum)
-
+        stops?.add(memorial)
+        d("chikk","starttt = something")
+        d("chikk","starttt = $startPoint")
+        d("chikk","start eiei = $stops")
         return stops
     }
 
@@ -254,10 +275,14 @@ class MainActivity : AppCompatActivity() {
         mapView.graphicsOverlays[0].graphics.add(mRouteTraveledGraphic)
         // get the map view's location display
         val locationDisplay: LocationDisplay = mapView.locationDisplay
-        // set up a simulated location data source which simulates movement along the route
-        mSimulatedLocationDataSource = SimulatedLocationDataSource(routeGeometry)
-        // set the simulated location data source as the location data source for this app
-        locationDisplay.locationDataSource = mSimulatedLocationDataSource
+
+//        //อาจจะไม่ต้องใช้ 2 อันนี้ เพราะเราไม่ต้อง simulate
+//        // set up a simulated location data source which simulates movement along the route
+//        mSimulatedLocationDataSource = SimulatedLocationDataSource(routeGeometry)
+//        // set the simulated location data source as the location data source for this app
+//        locationDisplay.locationDataSource = mSimulatedLocationDataSource
+
+
         locationDisplay.autoPanMode = LocationDisplay.AutoPanMode.NAVIGATION
         // if the user navigates the map view away from the location display, activate the recenter button
         locationDisplay.addAutoPanModeChangedListener { recenterButton.isEnabled = true }
@@ -269,6 +294,8 @@ class MainActivity : AppCompatActivity() {
         val distanceRemainingTextView = findViewById<TextView>(R.id.distanceRemainingTextView)
         val timeRemainingTextView = findViewById<TextView>(R.id.timeRemainingTextView)
         val nextDirectionTextView = findViewById<TextView>(R.id.nextDirectionTextView)
+
+
         // listen for changes in location
         locationDisplay.addLocationChangedListener { locationChangedEvent: LocationDisplay.LocationChangedEvent ->
             // track the location and update route tracking status
@@ -300,7 +327,7 @@ class MainActivity : AppCompatActivity() {
                         mRouteTracker!!.switchToNextDestinationAsync()
                         Toast.makeText(this, "Navigating to the second stop, the Fleet Science Center.", Toast.LENGTH_LONG).show()
                     } else { // the final destination has been reached, stop the simulated location data source
-                        mSimulatedLocationDataSource!!.onStop()
+//                        mSimulatedLocationDataSource!!.onStop()
                         Toast.makeText(this, "Arrived at the final destination.", Toast.LENGTH_LONG).show()
                     }
                 }
@@ -322,7 +349,81 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+//        invokeLocationAction()
 
 
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode == Activity.RESULT_OK) {
+            if (requestCode == GPS_REQUEST) {
+                isGPSEnabled = true
+                invokeLocationAction()
+            }
+        }
+    }
+
+    private fun invokeLocationAction() {
+        when {
+            !isGPSEnabled -> latLong.text = getString(R.string.enable_gps)
+
+            isPermissionsGranted() -> startLocationUpdate()
+
+            shouldShowRequestPermissionRationale() -> latLong.text = getString(R.string.permission_request)
+
+            else -> ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
+                LOCATION_REQUEST
+            )
+        }
+    }
+
+    private fun startLocationUpdate() {
+        locationViewModel.getLocationData().observe(this, Observer {
+            setStop(it.longitude, it.latitude)
+//            latLong.text =  getString(R.string.latLong, it.longitude, it.latitude)
+        })
+    }
+
+    private fun setStop(longitude: Double, latitude: Double) {
+        startPoint = Point(longitude,latitude, SpatialReferences.getWgs84())
+        d("chikk","starttt rrr = $startPoint")
+    }
+
+    private fun isPermissionsGranted() =
+        ActivityCompat.checkSelfPermission(
+            this,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
+
+    private fun shouldShowRequestPermissionRationale() =
+        ActivityCompat.shouldShowRequestPermissionRationale(
+            this,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) && ActivityCompat.shouldShowRequestPermissionRationale(
+            this,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+
+    @SuppressLint("MissingPermission")
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        when (requestCode) {
+            LOCATION_REQUEST -> {
+                invokeLocationAction()
+            }
+        }
+    }
 
 }
+
+const val LOCATION_REQUEST = 100
+const val GPS_REQUEST = 101

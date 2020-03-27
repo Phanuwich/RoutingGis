@@ -8,7 +8,7 @@
 
     <com.esri.arcgisruntime.mapping.view.MapView
         android:id="@+id/mapView"
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="0dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -17,6 +17,15 @@
 
     </com.esri.arcgisruntime.mapping.view.MapView>
 
+    <TextView
+        android:id="@+id/latLong"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0.0"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"/>
     <include
         android:id="@+id/navigationControls"
         layout="@layout/layout_navigation_controls"
